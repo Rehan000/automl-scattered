@@ -282,6 +282,7 @@ class ModelInspector(object):
                 if serial_port.isOpen():
                     serial_port.flush()
                     serial_port.write(led_on_string.encode())
+                    print(led_on_string.encode())
                     print("Data sent!")
                 else:
                     print("Serial port not open!")
