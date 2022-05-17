@@ -83,16 +83,16 @@ class ModelInspector(object):
   """A simple helper class for inspecting a model."""
 
   def __init__(self,
-               model_name: Text,
-               logdir: Text,
-               tensorrt: Text = False,
-               use_xla: bool = False,
-               ckpt_path: Text = None,
-               export_ckpt: Text = None,
-               saved_model_dir: Text = None,
-               tflite_path: Text = None,
-               batch_size: int = 1,
-               hparams: Text = '',
+               model_name,
+               logdir,
+               tensorrt = False,
+               use_xla = False,
+               ckpt_path = None,
+               export_ckpt = None,
+               saved_model_dir = None,
+               tflite_path = None,
+               batch_size = 1,
+               hparams = '',
                **kwargs):  # pytype: disable=annotation-type-mismatch
     self.model_name = model_name
     self.logdir = logdir
@@ -128,7 +128,7 @@ class ModelInspector(object):
 
     self.model_config = model_config
 
-  def build_model(self, inputs: tf.Tensor) -> List[tf.Tensor]:
+  def build_model(self, inputs):
     """Build model with inputs and labels and print out model stats."""
     logging.info('start building model')
     cls_outputs, box_outputs = inference.build_model(
@@ -345,7 +345,7 @@ class ModelInspector(object):
     raw_images = [np.array(Image.open(f)) for f in all_files[:self.batch_size]]
     driver.benchmark(raw_images, trace_filename)
 
-  def saved_model_video(self, video_path: Text, output_video: Text, **kwargs):
+  def saved_model_video(self, video_path, output_video, **kwargs):
     """Perform video inference for the given saved model."""
     import cv2  # pylint: disable=g-import-not-at-top
 
@@ -432,7 +432,7 @@ class ModelInspector(object):
                              self.model_config.moving_average_decay,
                              self.export_ckpt)
 
-  def freeze_model(self) -> Tuple[Text, Text]:
+  def freeze_model(self):
     """Freeze model and convert them into tflite and tf graph."""
     with tf.Graph().as_default(), tf.Session() as sess:
       inputs = tf.placeholder(tf.float32, name='input', shape=self.inputs_shape)
