@@ -15,7 +15,7 @@
 r"""Tool to inspect a model."""
 import os
 import time
-from typing import Text, Tuple, List
+#from typing import Text, Tuple, List
 
 from absl import app
 from absl import flags

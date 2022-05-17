@@ -23,16 +23,16 @@ min_score_thresh = 0.35  #@param
 max_boxes_to_draw = 200  #@param
 line_thickness = 2 #@param
 os.chdir("efficientdet")
-# ckpt_path = os.path.join(os.getcwd(), MODEL)
+ckpt_path = os.path.join(os.getcwd(), MODEL)
 # os.chdir("..")
 # print(ckpt_path)
-ckpt_path = download(MODEL)
+# ckpt_path = download(MODEL)
 print("checkpoint_path", ckpt_path)
 saved_model_dir = 'savedmodel'
 # os.system(f"rm -rf {saved_model_dir}")
 print("pwd", os.getcwd())
-os.system(f"sudo python3 model_inspect.py --runmode=saved_model --model_name={MODEL} \
-  --ckpt_path={ckpt_path} --saved_model_dir={saved_model_dir}")
+# os.system(f"sudo python3 model_inspect.py --runmode=saved_model --model_name={MODEL} \
+# --ckpt_path={ckpt_path} --saved_model_dir={saved_model_dir}")
 serve_image_out = 'serve_image_out'
 
 os.makedirs(serve_image_out, exist_ok=True)
