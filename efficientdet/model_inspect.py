@@ -292,12 +292,12 @@ class ModelInspector(object):
                 #     detections = [[detections_bs[0][i, 0]] + tracked[i].box.tolist() + [tracked[i].score] + [tracked[i].id]
                 #                   for i in range(len(detections))]
 
-                img = driver.visualize(raw_image[0], detections_bs[0], False,  **kwargs)
+                # img = driver.visualize(raw_image[0], detections_bs[0], False,  **kwargs)
 
                 # img_id = str(count)
                 # output_image_path = os.path.join(output_dir, img_id + '.jpg')
                 # Image.fromarray(img).save(output_image_path)
-                img_str = cv2.imencode('.jpg', img)[1].tostring()
+                # img_str = cv2.imencode('.jpg', img)[1].tostring()
                 # redis_client.xadd(detection_stream_name, {'detection': img_str}, maxlen=5)
                 # redis_client.execute_command(f'XTRIM {detection_stream_name} MAXLEN 5')
                 # vis_img = driver.visualize(raw_image[0], detections, True, **kwargs)
