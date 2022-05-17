@@ -1,0 +1,3 @@
+./efficientdet/*.tar.gz
+./efficientdet/savedmodel/*
+./efficientdet/efficientdet-d3/
