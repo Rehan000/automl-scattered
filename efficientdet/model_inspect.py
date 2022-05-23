@@ -228,7 +228,7 @@ class ModelInspector(object):
     driver.load(self.saved_model_dir)
 
     # Serial port object
-    serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)  # Toggle
+    # serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)  # Toggle
 
     # Loading table edge-points from file
     f = open("table_points_resized_mapped.txt", "r")
@@ -252,7 +252,7 @@ class ModelInspector(object):
     while True:
         try:
             # Record/Save start time
-            start_time = time.time()
+            start_time_total = time.time()
 
             # Check if video stream open
             if capture.isOpened():
@@ -288,7 +288,6 @@ class ModelInspector(object):
                     minimum_distance_index_list.append(str(minimum_distance_index[0][0] * 3))
                 led_on_string = ",".join(minimum_distance_index_list)
 
-                '''
                 # Visualize efficient-det model output
                 img_vis = driver.visualize(raw_image[0], detections_bs[0], 0, **kwargs)
                 for point in point_list:
@@ -300,13 +299,13 @@ class ModelInspector(object):
                                        (point_list[int(int(minimum_distance_index_list[i])/3)][0],
                                         point_list[int(int(minimum_distance_index_list[i])/3)][1]),
                                        color=(0, 255, 0),
-                                       thickness=1)
-                cv2.imshow("Result Image", img_vis)
+                                       thickness=2)
+                cv2.imshow("Detection Image", img_vis)
                 cv2.waitKey(1)
-                '''
 
                 # Toggle
                 # Send the LED on positions to Arduino via serial
+                '''
                 if serial_port.isOpen():
                     serial_port.flush()
                     serial_port.write(led_on_string.encode())
@@ -314,6 +313,7 @@ class ModelInspector(object):
                     print("Data sent!")
                 else:
                     print("Serial port not open!")
+                '''
 
                 # Reformat detections_bs
                 detections_bs = np.array(list(filter(lambda x: True if x[5]>0.4 else False, detections_bs.tolist()[0])))
@@ -328,12 +328,11 @@ class ModelInspector(object):
                                       "resized_image_shape": np.array(list(raw_image[0].shape)).tobytes()
                                   }, maxlen=5)
                 redis_client.execute_command(f'XTRIM {tracking_stream_name} MAXLEN 5')
-
                 count += 1
 
                 # Record/save end time and print frames-per-second
-                end_time = time.time()
-                print("Frames-per-second:", 1/(end_time - start_time))
+                end_time_total = time.time()
+                print("frames-per-second (FPS):", 1/(end_time_total - start_time_total))
         except Exception as e:
             print(e)
             capture = cv2.VideoCapture(rstp_stream)
