@@ -50,6 +50,7 @@ def crop_bbox(num_bbox, bbox_list, fullsized_decoded_image, tracking_predictions
 
 
 def show_values_forever():
+    CALL_CROP_BOX = False
     try:
         # Create tracker object
         tracker = MultiObjectTracker(dt=0.1)
@@ -90,9 +91,13 @@ def show_values_forever():
                 for tracking_id in tracking_predictions[:, -1]:
                     if tracking_id not in tracking_ids_list:
                         tracking_ids_list.append(tracking_id)
-                        crop_bbox(num_bbox=num_bbox[0], bbox_list=bbox,
-                                  fullsized_decoded_image=fullsized_decoded_image,
-                                  tracking_predictions=tracking_predictions)
+                        CALL_CROP_BOX = True
+
+                if CALL_CROP_BOX:
+                    crop_bbox(num_bbox=num_bbox[0], bbox_list=bbox,
+                              fullsized_decoded_image=fullsized_decoded_image,
+                              tracking_predictions=tracking_predictions)
+                    CALL_CROP_BOX = False
 
                 # Visualize the image with tracking ids
                 tracked_img = visualize_image_prediction(resized_decoded_image, tracking_predictions, True)
