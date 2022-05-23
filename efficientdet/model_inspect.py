@@ -213,7 +213,10 @@ class ModelInspector(object):
     resized = cv2.resize(image, dim, interpolation=inter)
     return resized
 
-  def inference_rstp(self, image_path_pattern, output_dir, rstp_stream="rtsp://servizio:K2KAccesso2021!@188.10.33.54:7554/cam/realmonitor?channel=1&subtype=0", **kwargs):
+  def inference_rstp(self, image_path_pattern,
+                     output_dir,
+                     rstp_stream="rtsp://servizio:K2KAccesso2021!@188.10.33.54:7554/cam/realmonitor?channel=1&subtype=0",
+                     **kwargs):
     """Perform inference for the given saved model."""
     driver = inference.ServingDriver(
         self.model_name,
@@ -225,7 +228,7 @@ class ModelInspector(object):
     driver.load(self.saved_model_dir)
 
     # Serial port object
-    serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)
+    serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)  # Toggle
 
     # Loading table edge-points from file
     f = open("table_points_resized_mapped.txt", "r")
@@ -237,30 +240,36 @@ class ModelInspector(object):
     for point in points:
         point = point[:-1]
         point_list.append(ast.literal_eval(point))
-
     point_list = np.array(point_list)
 
-    # Serving time batch size should be fixed.
+    # Serving time batch size should be fixed
     capture = cv2.VideoCapture(rstp_stream)
-    tracker = MultiObjectTracker(dt=0.1)
-    start_time = time.time()
     count = 0
     height, width = self.model_config.image_size
-    # redis_client = redis.Redis(host='127.0.0.1', port=6379)
     redis_client = redis.Redis()
     detection_stream_name = 'detection'
     tracking_stream_name = "tracking"
-    # while time.time() - start_time < 100:
     while True:
         try:
+            # Record/Save start time
+            start_time = time.time()
+
+            # Check if video stream open
             if capture.isOpened():
+                # Capture frame from the video stream
                 (status, image) = capture.read()
+
+                # Resize the image to (500, 280) for inference
                 raw_image = [self.image_resize(image, width=500)]
+
+                # Get detections from the efficient-det model
                 detections_bs = driver.serve_images(raw_image)
 
+                # Reformat detections in readable format
                 detections = [{"box": x[1:5], 'score': x[5], 'class_id': x[6], 'feature':0}
                               for x in detections_bs[0].tolist()]
 
+                # Calculate distance of bounding-boxes centers from table-points and extract minimum distance
                 bbox_midpoint_list = []
                 for detection in detections:
                     if detection['score'] > 0.4:
@@ -279,6 +288,25 @@ class ModelInspector(object):
                     minimum_distance_index_list.append(str(minimum_distance_index[0][0] * 3))
                 led_on_string = ",".join(minimum_distance_index_list)
 
+                '''
+                # Visualize efficient-det model output
+                img_vis = driver.visualize(raw_image[0], detections_bs[0], 0, **kwargs)
+                for point in point_list:
+                    img_vis = cv2.circle(img_vis, (point[0], point[1]), radius=2, color=(0, 0, 255), thickness=-1)
+                for i in range(len(bbox_midpoint_list)):
+                    img_vis = cv2.circle(img_vis, (bbox_midpoint_list[i][0], bbox_midpoint_list[i][1]),
+                                         radius=2, color=(255, 0, 0), thickness=-1)
+                    img_vis = cv2.line(img_vis, (bbox_midpoint_list[i][0], bbox_midpoint_list[i][1]),
+                                       (point_list[int(int(minimum_distance_index_list[i])/3)][0],
+                                        point_list[int(int(minimum_distance_index_list[i])/3)][1]),
+                                       color=(0, 255, 0),
+                                       thickness=1)
+                cv2.imshow("Result Image", img_vis)
+                cv2.waitKey(1)
+                '''
+
+                # Toggle
+                # Send the LED on positions to Arduino via serial
                 if serial_port.isOpen():
                     serial_port.flush()
                     serial_port.write(led_on_string.encode())
@@ -287,41 +315,25 @@ class ModelInspector(object):
                 else:
                     print("Serial port not open!")
 
-                # if len(detections) != 0:
-                #     tracker.step(detections=detections)
-                #     tracked = tracker.active_tracks()
-                #     detections = [[detections_bs[0][i, 0]] + tracked[i].box.tolist() + [tracked[i].score] + [tracked[i].id]
-                #                   for i in range(len(detections))]
-
-                # img = driver.visualize(raw_image[0], detections_bs[0], False,  **kwargs)
-
-                # img_id = str(count)
-                # output_image_path = os.path.join(output_dir, img_id + '.jpg')
-                # Image.fromarray(img).save(output_image_path)
-                # img_str = cv2.imencode('.jpg', img)[1].tostring()
-                # redis_client.xadd(detection_stream_name, {'detection': img_str}, maxlen=5)
-                # redis_client.execute_command(f'XTRIM {detection_stream_name} MAXLEN 5')
-                # vis_img = driver.visualize(raw_image[0], detections, True, **kwargs)
-                # cv2.imshow("vis_img", vis_img)
-                # cv2.waitKey(1)
-                # if len(detections) != 0:
-                #     img = driver.visualize(raw_image[0], np.array(detections), True, **kwargs)
-                #     img_str = cv2.imencode('.jpg', img)[1].tostring()
-                # else:
-                #     img_str = cv2.imencode('.jpg', raw_image[0])[1].tostring()
+                # Reformat detections_bs
                 detections_bs = np.array(list(filter(lambda x: True if x[5]>0.4 else False, detections_bs.tolist()[0])))
-                flatten_detection = list(map(lambda x: int(x), detections_bs.flatten().tolist()))
-                # print(flatten_detection)
+
+                # Add detections to redis stream: "detection"
                 redis_client.xadd(detection_stream_name,
                                   {
-                                      'tracking': cv2.imencode('.jpg', raw_image[0])[1].tostring(),
-                                      "bbox": detections_bs.tostring(),
-                                      "bbox_shape": np.array(list(detections_bs.shape)).tostring(),
-                                      "shape": np.array(list(raw_image[0].shape)).tostring()
+                                      "fullsized_image": cv2.imencode('.jpg', image)[1].tobytes(),
+                                      "resized_image": cv2.imencode('.jpg', raw_image[0])[1].tobytes(),
+                                      "bbox": detections_bs.tobytes(),
+                                      "num_bbox": np.array(list(detections_bs.shape)).tobytes(),
+                                      "resized_image_shape": np.array(list(raw_image[0].shape)).tobytes()
                                   }, maxlen=5)
                 redis_client.execute_command(f'XTRIM {tracking_stream_name} MAXLEN 5')
-                # print('writing file to %s' % output_image_path)
+
                 count += 1
+
+                # Record/save end time and print frames-per-second
+                end_time = time.time()
+                print("Frames-per-second:", 1/(end_time - start_time))
         except Exception as e:
             print(e)
             capture = cv2.VideoCapture(rstp_stream)
