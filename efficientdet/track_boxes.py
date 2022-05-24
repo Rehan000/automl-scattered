@@ -55,7 +55,7 @@ def show_values_forever():
         # Create tracker object
         tracker = MultiObjectTracker(dt=0.1)
         # List to store tracking ids
-        tracking_ids_list = []
+        tracking_ids_set = set()
         while True:
             # Read the redis stream: "detection"
             message = redis.xread({stream_name: '$'}, None, 0)
@@ -89,8 +89,8 @@ def show_values_forever():
 
                 # If new tracking id, add in tracking id list and call crop_bbox function
                 for tracking_id in tracking_predictions[:, -1]:
-                    if tracking_id not in tracking_ids_list:
-                        tracking_ids_list.append(tracking_id)
+                    if tracking_id not in tracking_ids_set:
+                        tracking_ids_set.add(tracking_id)
                         CALL_CROP_BOX = True
 
                 if CALL_CROP_BOX:
