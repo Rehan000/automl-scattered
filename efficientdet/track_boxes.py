@@ -1,4 +1,4 @@
-from inference import visualize_image_prediction
+# from inference import visualize_image_prediction
 from motpy import MultiObjectTracker
 import redis
 import base64
