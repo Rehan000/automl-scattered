@@ -14,6 +14,7 @@
 # ==============================================================================
 r"""Tool to inspect a model."""
 import os
+import sys
 import time
 #from typing import Text, Tuple, List
 
@@ -228,7 +229,7 @@ class ModelInspector(object):
     driver.load(self.saved_model_dir)
 
     # Serial port object
-    # serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)  # Toggle
+    serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)  # Toggle
 
     # Loading table edge-points from file
     f = open("table_points_resized_mapped.txt", "r")
@@ -263,11 +264,25 @@ class ModelInspector(object):
                 raw_image = [self.image_resize(image, width=500)]
 
                 # Get detections from the efficient-det model
+                detections_bs = np.array([])
                 detections_bs = driver.serve_images(raw_image)
+
+                # Only separate person detections
+                detections_bs_person = [[]]
+                for detection in detections_bs[0]:
+                    if detection[-1] == 1.0:
+                        detections_bs_person[0].append(detection)
+                detections_bs_person = np.array(detections_bs_person)
+
+                # Show if person detected or not
+                if detections_bs_person.shape[1] != 0:
+                    print(f"Persons detected!")
+                else:
+                    print("Persons Not Detected!")
 
                 # Reformat detections in readable format
                 detections = [{"box": x[1:5], 'score': x[5], 'class_id': x[6], 'feature':0}
-                              for x in detections_bs[0].tolist()]
+                              for x in detections_bs_person[0].tolist()]
 
                 # Calculate distance of bounding-boxes centers from table-points and extract minimum distance
                 bbox_midpoint_list = []
@@ -288,24 +303,30 @@ class ModelInspector(object):
                     minimum_distance_index_list.append(str(minimum_distance_index[0][0] * 3))
                 led_on_string = ",".join(minimum_distance_index_list)
 
+                '''
                 # Visualize efficient-det model output
-                img_vis = driver.visualize(raw_image[0], detections_bs[0], 0, **kwargs)
-                for point in point_list:
-                    img_vis = cv2.circle(img_vis, (point[0], point[1]), radius=2, color=(0, 0, 255), thickness=-1)
-                for i in range(len(bbox_midpoint_list)):
-                    img_vis = cv2.circle(img_vis, (bbox_midpoint_list[i][0], bbox_midpoint_list[i][1]),
-                                         radius=2, color=(255, 0, 0), thickness=-1)
-                    img_vis = cv2.line(img_vis, (bbox_midpoint_list[i][0], bbox_midpoint_list[i][1]),
-                                       (point_list[int(int(minimum_distance_index_list[i])/3)][0],
-                                        point_list[int(int(minimum_distance_index_list[i])/3)][1]),
-                                       color=(0, 255, 0),
-                                       thickness=2)
-                cv2.imshow("Detection Image", img_vis)
-                cv2.waitKey(1)
+                if detections_bs_person.shape[1] != 0:
+                    img_vis = driver.visualize(raw_image[0], detections_bs_person[0], 0, **kwargs)
+                    for point in point_list:
+                        img_vis = cv2.circle(img_vis, (point[0], point[1]), radius=2, color=(0, 0, 255), thickness=-1)
+                    for i in range(len(bbox_midpoint_list)):
+                        img_vis = cv2.circle(img_vis, (bbox_midpoint_list[i][0], bbox_midpoint_list[i][1]),
+                                             radius=2, color=(255, 0, 0), thickness=-1)
+                        img_vis = cv2.line(img_vis, (bbox_midpoint_list[i][0], bbox_midpoint_list[i][1]),
+                                           (point_list[int(int(minimum_distance_index_list[i])/3)][0],
+                                            point_list[int(int(minimum_distance_index_list[i])/3)][1]),
+                                            color=(0, 255, 0),
+                                            thickness=2)
+                    cv2.imshow("Detection Image", img_vis)
+                    cv2.waitKey(1)
+                else:
+                    img_vis = raw_image
+                    cv2.imshow("Detection Image", img_vis)
+                    cv2.waitKey(1)
+                '''
 
                 # Toggle
                 # Send the LED on positions to Arduino via serial
-                '''
                 if serial_port.isOpen():
                     serial_port.flush()
                     serial_port.write(led_on_string.encode())
@@ -313,10 +334,10 @@ class ModelInspector(object):
                     print("Data sent!")
                 else:
                     print("Serial port not open!")
-                '''
 
                 # Reformat detections_bs
-                detections_bs = np.array(list(filter(lambda x: True if x[5]>0.4 else False, detections_bs.tolist()[0])))
+                detections_bs = np.array(list(filter(lambda x: True if x[5]>0.4 else False,
+                                                     detections_bs_person.tolist()[0])))
 
                 # Add detections to redis stream: "detection"
                 redis_client.xadd(detection_stream_name,
@@ -334,7 +355,9 @@ class ModelInspector(object):
                 end_time_total = time.time()
                 print("frames-per-second (FPS):", 1/(end_time_total - start_time_total))
         except Exception as e:
-            print(e)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            print("Error", e)
+            print("Line Number:", exc_tb.tb_lineno)
             capture = cv2.VideoCapture(rstp_stream)
 
   def saved_model_benchmark(self,

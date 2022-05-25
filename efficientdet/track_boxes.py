@@ -53,7 +53,7 @@ def show_values_forever():
     CALL_CROP_BOX = False
     try:
         # Create tracker object
-        tracker = MultiObjectTracker(dt=0.1)
+        tracker = MultiObjectTracker(dt=5.0)
         # List to store tracking ids
         tracking_ids_set = set()
         while True:
@@ -99,10 +99,12 @@ def show_values_forever():
                               tracking_predictions=tracking_predictions)
                     CALL_CROP_BOX = False
 
+                '''
                 # Visualize the image with tracking ids
                 tracked_img = visualize_image_prediction(resized_decoded_image, tracking_predictions, True)
                 cv2.imshow("Tracking Image", tracked_img)
                 cv2.waitKey(1)
+                '''
     except Exception as ex:
         print(ex)
         print('show_values terminated.')

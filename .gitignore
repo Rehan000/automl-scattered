@@ -2,3 +2,4 @@
 /efficientdet/efficientdet-d3/*
 /efficientdet/savedmodel/*
 /efficientdet/cropped_image.jpg
+/efficientdet/get_cam_stream.py
