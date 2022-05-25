@@ -37,7 +37,7 @@ serve_image_out = 'serve_image_out'
 
 os.makedirs(serve_image_out, exist_ok=True)
 
-os.system(f"python model_inspect.py --runmode=rstp_infer \
+os.system(f"sudo python3 model_inspect.py --runmode=rstp_infer \
   --saved_model_dir={saved_model_dir} \
   --model_name={MODEL}  --input_image=testdata/img1.jpg  \
   --output_image_dir={serve_image_out} \
