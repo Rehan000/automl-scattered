@@ -229,7 +229,7 @@ class ModelInspector(object):
     driver.load(self.saved_model_dir)
 
     # Serial port object
-    serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)  # Toggle
+    # serial_port = serial.Serial(port='/dev/ttyACM0', baudrate=9600)  # Toggle
 
     # Loading table edge-points from file
     f = open("table_points_resized_mapped.txt", "r")
@@ -274,12 +274,6 @@ class ModelInspector(object):
                         detections_bs_person[0].append(detection)
                 detections_bs_person = np.array(detections_bs_person)
 
-                # Show if person detected or not
-                if detections_bs_person.shape[1] != 0:
-                    print(f"Persons detected!")
-                else:
-                    print("Persons Not Detected!")
-
                 # Reformat detections in readable format
                 detections = [{"box": x[1:5], 'score': x[5], 'class_id': x[6], 'feature':0}
                               for x in detections_bs_person[0].tolist()]
@@ -303,7 +297,6 @@ class ModelInspector(object):
                     minimum_distance_index_list.append(str(minimum_distance_index[0][0] * 3))
                 led_on_string = ",".join(minimum_distance_index_list)
 
-                '''
                 # Visualize efficient-det model output
                 if detections_bs_person.shape[1] != 0:
                     img_vis = driver.visualize(raw_image[0], detections_bs_person[0], 0, **kwargs)
@@ -317,14 +310,18 @@ class ModelInspector(object):
                                             point_list[int(int(minimum_distance_index_list[i])/3)][1]),
                                             color=(0, 255, 0),
                                             thickness=2)
+                    img_vis = cv2.resize(img_vis, (800, 500))
                     cv2.imshow("Detection Image", img_vis)
                     cv2.waitKey(1)
                 else:
-                    img_vis = raw_image
+                    img_vis = raw_image[0].copy()
+                    for point in point_list:
+                        img_vis = cv2.circle(img_vis, (point[0], point[1]), radius=2, color=(0, 0, 255), thickness=-1)
+                    img_vis = cv2.resize(img_vis, (800, 500))
                     cv2.imshow("Detection Image", img_vis)
                     cv2.waitKey(1)
-                '''
 
+                '''
                 # Toggle
                 # Send the LED on positions to Arduino via serial
                 if serial_port.isOpen():
@@ -334,7 +331,7 @@ class ModelInspector(object):
                     print("Data sent!")
                 else:
                     print("Serial port not open!")
-
+                '''
                 # Reformat detections_bs
                 detections_bs = np.array(list(filter(lambda x: True if x[5]>0.4 else False,
                                                      detections_bs_person.tolist()[0])))
